@@ -21,6 +21,7 @@ import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.lang.reflect.Field;
 import java.net.URL;
 import java.nio.channels.Channels;
 import java.nio.channels.ReadableByteChannel;
@@ -58,8 +59,11 @@ import org.geowebcache.service.HttpErrorCodeException;
 import org.geowebcache.service.OWSException;
 import org.geowebcache.service.Service;
 import org.geowebcache.stats.RuntimeStats;
+import org.geowebcache.storage.BlobStore;
 import org.geowebcache.storage.DefaultStorageFinder;
 import org.geowebcache.storage.StorageBroker;
+import org.geowebcache.storage.blobstore.cache.CacheStatistics;
+import org.geowebcache.storage.blobstore.cache.MemoryBlobStore;
 import org.geowebcache.util.ServletUtils;
 import org.springframework.web.servlet.ModelAndView;
 import org.springframework.web.servlet.mvc.AbstractController;
@@ -453,6 +457,10 @@ public class GeoWebCacheDispatcher extends AbstractController {
         if (runtimeStats != null) {
             str.append("<h3>Runtime Statistics</h3>\n");
             str.append(runtimeStats.getHTMLStats());
+            str.append("</table>\n");
+        }
+        if(storageBroker != null){
+            appendInternalCacheStats(str);
         }
         str.append("</body></html>\n");
 
@@ -601,5 +609,108 @@ public class GeoWebCacheDispatcher extends AbstractController {
                 log.debug("Caught IOException: " + ioe.getMessage() + "\n\n" + ioe.toString());
             }
         }
+    }
+
+    /**
+     * This method appends the cache statistics to the GWC homepage if the blobstore used is an instance of the {@link MemoryBlobStore} class
+     * 
+     * @param str Input {@link StringBuilder} containing the HTML for the GWC homepage
+     */
+    private void appendInternalCacheStats(StringBuilder strGlobal) {
+
+        if (storageBroker == null) {
+            return;
+        }
+
+        // Searches for the BlobStore inside the StorageBroker
+        BlobStore privateStore = null;
+        try {
+            Field privateblobStore = storageBroker.getClass().getDeclaredField("blobStore");
+
+            privateblobStore.setAccessible(true);
+
+            privateStore = (BlobStore) privateblobStore.get(storageBroker);
+        } catch (NoSuchFieldException e) {
+            if (log.isErrorEnabled()) {
+                log.error(e.getMessage(), e);
+            }
+        } catch (SecurityException e) {
+            if (log.isErrorEnabled()) {
+                log.error(e.getMessage(), e);
+            }
+        } catch (IllegalArgumentException e) {
+            if (log.isErrorEnabled()) {
+                log.error(e.getMessage(), e);
+            }
+        } catch (IllegalAccessException e) {
+            if (log.isErrorEnabled()) {
+                log.error(e.getMessage(), e);
+            }
+        }
+
+        // If it is not present, or it is not a memory blobstore, nothing is done
+        if (privateStore == null || !(privateStore instanceof MemoryBlobStore)) {
+            return;
+        }
+
+        // Get the MemoryBlobStore if present
+        MemoryBlobStore store = (MemoryBlobStore) privateStore;
+
+        // Get the statistics
+        CacheStatistics statistics = store.getCacheStatistics();
+
+        if (statistics == null) {
+            return;
+        }
+
+        // Get the statistics values
+        long hitCount = statistics.getHitCount();
+        long missCount = statistics.getMissCount();
+        long evictionCount = statistics.getEvictionCount();
+        long requestCount = statistics.getRequestCount();
+        double hitRate = statistics.getHitRate();
+        double missRate = statistics.getMissRate();
+
+        // Append the HTML with the statistics to a new StringBuilder
+        StringBuilder str = new StringBuilder();
+
+        str.append("<h3>In Memory Cache Statistics</h3>\n");
+
+        str.append("<table border=\"0\" cellspacing=\"5\">");
+
+        str.append("<tr><td colspan=\"2\">Total number of requests:</td><td colspan=\"3\">"
+                + requestCount);
+        str.append("</td></tr>\n");
+
+        str.append("<tr><td colspan=\"5\"> </td></tr>");
+
+        str.append("<tr><td colspan=\"2\">Internal Cache hit count:</td><td colspan=\"3\">");
+        str.append(hitCount);
+        str.append("</td></tr>\n");
+
+        str.append("<tr><td colspan=\"2\">Internal Cache miss count:</td><td colspan=\"3\">");
+        str.append(missCount);
+        str.append("</td></tr>\n");
+
+        str.append("<tr><td colspan=\"2\">Internal Cache hit ratio:</td><td colspan=\"3\">");
+        str.append(hitRate + " %");
+        str.append("</td></tr>\n");
+
+        str.append("<tr><td colspan=\"2\">Internal Cache miss ratio:</td><td colspan=\"3\">");
+        str.append(missRate + " %");
+        str.append("</td></tr>\n");
+
+        str.append("<tr><td colspan=\"5\"> </td></tr>");
+
+        str.append("<tr><td colspan=\"2\">Total number of evicted tiles:</td><td colspan=\"3\">"
+                + evictionCount);
+        str.append("</td></tr>\n");
+
+        str.append("<tr><td colspan=\"5\"> </td></tr>");
+
+        str.append("</table>\n");
+
+        // Append to the homepage HTML
+        strGlobal.append(str);
     }
 }
