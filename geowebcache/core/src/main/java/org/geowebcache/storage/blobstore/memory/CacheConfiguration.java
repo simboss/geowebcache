@@ -12,7 +12,7 @@
  *  You should have received a copy of the GNU Lesser General Public License
  *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-package org.geowebcache.storage.blobstore.cache;
+package org.geowebcache.storage.blobstore.memory;
 
 import java.io.Serializable;
 
@@ -26,9 +26,6 @@ public class CacheConfiguration implements Serializable {
     /** serialVersionUID */
     private static final long serialVersionUID = 3875121032331372267L;
 
-    /** Default value for the Cache memory limit */
-    public static final long DEFAULT_MEMORY_LIMIT = 16; // 16Mb
-
     /** Evction policy */
     public enum EvictionPolicy {
         LRU, LFU, EXPIRE_AFTER_WRITE, EXPIRE_AFTER_ACCESS, NULL;
@@ -41,17 +38,23 @@ public class CacheConfiguration implements Serializable {
         }
     }
 
+    /** Default value for the Cache memory limit */
+    public static final long DEFAULT_MEMORY_LIMIT = 16; // 16Mb
+
     /** Default value for the cache concurrency level */
     public static final int DEFAULT_CONCURRENCY_LEVEL = 4;
 
-    /** Default value for the eviction time */
-    public static final long DEFAULT_EVICTION_TIME = 1;
+    /** Default value for the eviction time (s) */
+    public static final long DEFAULT_EVICTION_TIME = 2*60; //2 minutes
+    
+    /** Default value for the eviction policy */
+    public static final EvictionPolicy DEFAULT_EVICTION_POLICY=EvictionPolicy.EXPIRE_AFTER_ACCESS;
 
     /** Parameter associated to the Cache memory limit */
     private long hardMemoryLimit = DEFAULT_MEMORY_LIMIT;
 
     /** Cache eviction policy */
-    private EvictionPolicy policy;
+    private EvictionPolicy policy=DEFAULT_EVICTION_POLICY;
 
     /** Parameter associated to the Cache concurrency level */
     private int concurrencyLevel = DEFAULT_CONCURRENCY_LEVEL;

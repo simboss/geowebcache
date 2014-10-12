@@ -12,7 +12,7 @@
  *  You should have received a copy of the GNU Lesser General Public License
  *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-package org.geowebcache.storage.blobstore.cache;
+package org.geowebcache.storage.blobstore.memory;
 
 import java.io.UnsupportedEncodingException;
 import java.net.URLEncoder;
@@ -22,6 +22,7 @@ import java.util.Properties;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+import org.apache.log4j.Logger;
 import org.geowebcache.storage.BlobStore;
 import org.geowebcache.storage.BlobStoreListener;
 import org.geowebcache.storage.StorageException;
@@ -39,8 +40,8 @@ public class NullBlobStore implements BlobStore {
 
     private Map<String, Properties> metadataMap;
 
-    /** {@link Log} object used for logging exceptions */
-    private final static Log LOG = LogFactory.getLog(NullBlobStore.class);
+    /** {@link Logger} object used for logging exceptions */
+    private final static Log LOGGER = LogFactory.getLog(NullBlobStore.class);
 
     public NullBlobStore() {
         // Map initialization
@@ -120,7 +121,7 @@ public class NullBlobStore implements BlobStore {
                 // If present adds the new property
                 props.setProperty(key, URLEncoder.encode(value, "UTF-8"));
             } catch (UnsupportedEncodingException e) {
-                LOG.error(e.getLocalizedMessage(), e);
+                LOGGER.error(e.getLocalizedMessage(), e);
             }
         } else {
             // Else creates a new Property object and them adds the new property
@@ -128,7 +129,7 @@ public class NullBlobStore implements BlobStore {
             try {
                 props.setProperty(key, URLEncoder.encode(value, "UTF-8"));
             } catch (UnsupportedEncodingException e) {
-                LOG.error(e.getLocalizedMessage(), e);
+                LOGGER.error(e.getLocalizedMessage(), e);
             }
             metadataMap.put(layerName, props);
         }

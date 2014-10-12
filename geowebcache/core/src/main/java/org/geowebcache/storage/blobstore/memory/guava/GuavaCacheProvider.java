@@ -12,7 +12,7 @@
  *  You should have received a copy of the GNU Lesser General Public License
  *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-package org.geowebcache.storage.blobstore.cache;
+package org.geowebcache.storage.blobstore.memory.guava;
 
 import java.util.Arrays;
 import java.util.Set;
@@ -25,8 +25,15 @@ import java.util.concurrent.locks.ReentrantReadWriteLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock.ReadLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock.WriteLock;
 
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
+import org.apache.log4j.Logger;
 import org.geowebcache.storage.TileObject;
-import org.geowebcache.storage.blobstore.cache.CacheConfiguration.EvictionPolicy;
+import org.geowebcache.storage.blobstore.memory.CacheConfiguration;
+import org.geowebcache.storage.blobstore.memory.CacheProvider;
+import org.geowebcache.storage.blobstore.memory.CacheStatistics;
+import org.geowebcache.storage.blobstore.memory.NullBlobStore;
+import org.geowebcache.storage.blobstore.memory.CacheConfiguration.EvictionPolicy;
 
 import com.google.common.cache.Cache;
 import com.google.common.cache.CacheBuilder;
@@ -42,6 +49,9 @@ import com.google.common.cache.Weigher;
  * @author Nicola Lagomarsini Geosolutions
  */
 public class GuavaCacheProvider implements CacheProvider {
+
+    /** {@link Logger} object used for logging exceptions */
+    private final static Log LOGGER = LogFactory.getLog(NullBlobStore.class);
 
     /** Separator char used for creating Cache keys */
     public final static String SEPARATOR = "_";
@@ -124,7 +134,13 @@ public class GuavaCacheProvider implements CacheProvider {
                     public void onRemoval(RemovalNotification<String, TileObject> notification) {
                         // TODO This operation is not atomic
                         TileObject obj = notification.getValue();
-                        multimap.removeTile(obj.getLayerName(), generateTileKey(obj));
+                        final String tileKey = generateTileKey(obj);
+                        final String layerName = obj.getLayerName();
+                        multimap.removeTile(layerName, tileKey);
+                        if(LOGGER.isDebugEnabled()){
+                            LOGGER.debug("Removed tile "+tileKey+" for layer "+layerName+ " due to reason:"+notification.getCause().toString());
+                            LOGGER.debug("Removed tile was evicted? "+notification.wasEvicted());
+                        }
                     }
                 });
         // Handle eviction policy
@@ -264,7 +280,7 @@ public class GuavaCacheProvider implements CacheProvider {
     }
 
     @Override
-    public void clearCache() {
+    public void clear() {
         // Check if the cache has already been configured
         if (configured.get()) {
             // Increment the number of current operations
@@ -285,7 +301,7 @@ public class GuavaCacheProvider implements CacheProvider {
     }
 
     @Override
-    public void resetCache() {
+    public void reset() {
         if (configured.getAndSet(false)) {
             // Avoid to call the While cycle before having started an operation with configured == false
             actualOperations.incrementAndGet();
@@ -303,7 +319,7 @@ public class GuavaCacheProvider implements CacheProvider {
     }
 
     @Override
-    public CacheStatistics getStats() {
+    public CacheStatistics getStatistics() {
         // Check if the cache has already been configured
         if (configured.get()) {
             // Increment the number of current operations
@@ -332,8 +348,8 @@ public class GuavaCacheProvider implements CacheProvider {
      * @return {@link TileObject} key
      */
     public static String generateTileKey(TileObject obj) {
-        return obj.getLayerName() + SEPARATOR + obj.getGridSetId() + SEPARATOR
-                + Arrays.toString(obj.getXYZ()) + SEPARATOR + obj.getBlobFormat();
+        return new StringBuilder(obj.getLayerName()).append(SEPARATOR).append(obj.getGridSetId() ).append( SEPARATOR)
+                .append( Arrays.toString(obj.getXYZ()) ).append( SEPARATOR ).append( obj.getBlobFormat()).toString();
     }
 
     @Override

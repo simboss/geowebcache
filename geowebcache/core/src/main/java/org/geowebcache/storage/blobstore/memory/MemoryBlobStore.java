@@ -12,7 +12,7 @@
  *  You should have received a copy of the GNU Lesser General Public License
  *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-package org.geowebcache.storage.blobstore.cache;
+package org.geowebcache.storage.blobstore.memory;
 
 import java.io.IOException;
 import java.nio.channels.Channels;
@@ -36,6 +36,7 @@ import org.geowebcache.storage.BlobStoreListener;
 import org.geowebcache.storage.StorageException;
 import org.geowebcache.storage.TileObject;
 import org.geowebcache.storage.TileRange;
+import org.geowebcache.storage.blobstore.memory.guava.GuavaCacheProvider;
 
 /**
  * This class is an implementation of the {@link BlobStore} interface wrapping another {@link BlobStore} implementation and supporting in memory
@@ -52,12 +53,12 @@ public class MemoryBlobStore implements BlobStore {
     private BlobStore store;
 
     /** {@link CacheProvider} object to use for caching */
-    private CacheProvider cache;
+    private CacheProvider cacheProvider;
 
-    /** Executor service used for scheduling cache store operations like put,delete,... */
+    /** Executor service used for scheduling cacheProvider store operations like put,delete,... */
     private final ExecutorService executorService;
 
-    /** {@link ReentrantReadWriteLock} used for handling concurrency when accessing the cache */
+    /** {@link ReentrantReadWriteLock} used for handling concurrency when accessing the cacheProvider */
     private final ReentrantReadWriteLock lock;
 
     /** {@link WriteLock} used for scheduling the access to the {@link MemoryBlobStore} state */
@@ -72,20 +73,20 @@ public class MemoryBlobStore implements BlobStore {
         lock = new ReentrantReadWriteLock(true);
         writeLock = lock.writeLock();
         readLock = lock.readLock();
-        // Initialization of the cache and store. Must be overridden
+        // Initialization of the cacheProvider and store. Must be overridden, this uses default and caches in memory
         setStore(new NullBlobStore());
         GuavaCacheProvider startingCache = new GuavaCacheProvider();
         startingCache.setConfiguration(new CacheConfiguration());
-        setCache(startingCache);
+        setCacheProvider(startingCache);
     }
 
     @Override
     public boolean delete(String layerName) throws StorageException {
-        // ReadLock is used because we are changing the internal state of the cache, not the MemoryBlobStore state
+        // ReadLock is used because we are changing the internal state of the cacheProvider, not the MemoryBlobStore state
         readLock.lock();
         try {
-            // Remove from cache
-            cache.removeLayer(layerName);
+            // Remove from cacheProvider
+            cacheProvider.removeLayer(layerName);
             // Remove the layer. Wait other scheduled tasks
             Future<Boolean> future = executorService.submit(new BlobStoreTask(store,
                     BlobStoreAction.DELETE_LAYER, layerName));
@@ -112,11 +113,11 @@ public class MemoryBlobStore implements BlobStore {
 
     @Override
     public boolean deleteByGridsetId(String layerName, String gridSetId) throws StorageException {
-        // ReadLock is used because we are changing the internal state of the cache, not the MemoryBlobStore state
+        // ReadLock is used because we are changing the internal state of the cacheProvider, not the MemoryBlobStore state
         readLock.lock();
         try {
-            // Remove the layer from the cache
-            cache.removeLayer(layerName);
+            // Remove the layer from the cacheProvider
+            cacheProvider.removeLayer(layerName);
             // Remove selected gridsets
             executorService.submit(new BlobStoreTask(store, BlobStoreAction.DELETE_GRIDSET,
                     layerName, gridSetId));
@@ -128,11 +129,11 @@ public class MemoryBlobStore implements BlobStore {
 
     @Override
     public boolean delete(TileObject obj) throws StorageException {
-        // ReadLock is used because we are changing the internal state of the cache, not the MemoryBlobStore state
+        // ReadLock is used because we are changing the internal state of the cacheProvider, not the MemoryBlobStore state
         readLock.lock();
         try {
-            // Remove from cache
-            cache.removeTileObj(obj);
+            // Remove from cacheProvider
+            cacheProvider.removeTileObj(obj);
             // Remove selected TileObject
             executorService.submit(new BlobStoreTask(store, BlobStoreAction.DELETE_SINGLE, obj));
             return true;
@@ -143,11 +144,11 @@ public class MemoryBlobStore implements BlobStore {
 
     @Override
     public boolean delete(TileRange obj) throws StorageException {
-        // ReadLock is used because we are changing the internal state of the cache, not the MemoryBlobStore state
+        // ReadLock is used because we are changing the internal state of the cacheProvider, not the MemoryBlobStore state
         readLock.lock();
         try {
-            // flush the cache
-            cache.clearCache();
+            // flush the cacheProvider
+            cacheProvider.clear();
             // Remove selected TileRange
             executorService.submit(new BlobStoreTask(store, BlobStoreAction.DELETE_RANGE, obj));
             return true;
@@ -158,10 +159,10 @@ public class MemoryBlobStore implements BlobStore {
 
     @Override
     public boolean get(TileObject obj) throws StorageException {
-        // ReadLock is used because we are changing the internal state of the cache, not the MemoryBlobStore state
+        // ReadLock is used because we are changing the internal state of the cacheProvider, not the MemoryBlobStore state
         readLock.lock();
         try {
-            TileObject cached = cache.getTileObj(obj);
+            TileObject cached = cacheProvider.getTileObj(obj);
             boolean found = false;
             if (cached == null) {
                 // Try if it can be found in the system. Wait other scheduled tasks
@@ -179,15 +180,15 @@ public class MemoryBlobStore implements BlobStore {
                         LOG.error(e.getMessage(), e);
                     }
                 }
-                // If the file has been found, it is inserted in cache
+                // If the file has been found, it is inserted in cacheProvider
                 if (found) {
                     // Get the Cached TileObject
                     cached = getByteResourceTile(obj);
                     // Put the file in Cache
-                    cache.putTileObj(cached);
+                    cacheProvider.putTileObj(cached);
                 }
             } else {
-                // Found in cache
+                // Found in cacheProvider
                 found = true;
             }
             // If found add its resource to the input TileObject
@@ -206,11 +207,11 @@ public class MemoryBlobStore implements BlobStore {
 
     @Override
     public void put(TileObject obj) throws StorageException {
-        // ReadLock is used because we are changing the internal state of the cache, not the MemoryBlobStore state
+        // ReadLock is used because we are changing the internal state of the cacheProvider, not the MemoryBlobStore state
         readLock.lock();
         try {
             TileObject cached = getByteResourceTile(obj);
-            cache.putTileObj(cached);
+            cacheProvider.putTileObj(cached);
             // Add selected TileObject. Wait other scheduled tasks
             Future<Boolean> future = executorService.submit(new BlobStoreTask(store,
                     BlobStoreAction.PUT, obj));
@@ -233,11 +234,11 @@ public class MemoryBlobStore implements BlobStore {
 
     @Override
     public void clear() throws StorageException {
-        // ReadLock is used because we are changing the internal state of the cache, not the MemoryBlobStore state
+        // ReadLock is used because we are changing the internal state of the cacheProvider, not the MemoryBlobStore state
         readLock.lock();
         try {
-            // flush the cache
-            cache.clearCache();
+            // flush the cacheProvider
+            cacheProvider.clear();
             // Remove all the files
             executorService.submit(new BlobStoreTask(store, BlobStoreAction.CLEAR, ""));
         } finally {
@@ -250,8 +251,8 @@ public class MemoryBlobStore implements BlobStore {
         // WriteLock is used because we are changing the MemoryBlobStore state
         writeLock.lock();
         try {
-            // flush the cache
-            cache.resetCache();
+            // flush the cacheProvider
+            cacheProvider.reset();
             // Remove all the files
             Future<Boolean> future = executorService.submit(new BlobStoreTask(store,
                     BlobStoreAction.DESTROY, ""));
@@ -300,11 +301,11 @@ public class MemoryBlobStore implements BlobStore {
 
     @Override
     public boolean rename(String oldLayerName, String newLayerName) throws StorageException {
-        // ReadLock is used because we are changing the internal state of the cache, not the MemoryBlobStore state
+        // ReadLock is used because we are changing the internal state of the cacheProvider, not the MemoryBlobStore state
         readLock.lock();
         try {
-            // flush the cache
-            cache.clearCache();
+            // flush the cacheProvider
+            cacheProvider.clear();
             // Rename the layer. Wait other scheduled tasks
             Future<Boolean> future = executorService.submit(new BlobStoreTask(store,
                     BlobStoreAction.RENAME, oldLayerName, newLayerName));
@@ -316,10 +317,12 @@ public class MemoryBlobStore implements BlobStore {
                 if (LOG.isErrorEnabled()) {
                     LOG.error(e.getMessage(), e);
                 }
+                executed = false;
             } catch (ExecutionException e) {
                 if (LOG.isErrorEnabled()) {
                     LOG.error(e.getMessage(), e);
                 }
+                executed = false;
             }
             return executed;
         } finally {
@@ -355,10 +358,10 @@ public class MemoryBlobStore implements BlobStore {
      * @return a {@link CacheStatistics} object containing the {@link CacheProvider} statistics
      */
     public CacheStatistics getCacheStatistics() {
-        // ReadLock is used because we are changing the internal state of the cache, not the MemoryBlobStore state
+        // ReadLock is used because we are changing the internal state of the cacheProvider, not the MemoryBlobStore state
         readLock.lock();
         try {
-            return cache.getStats();
+            return cacheProvider.getStatistics();
         } finally {
             readLock.unlock();
         }
@@ -374,7 +377,7 @@ public class MemoryBlobStore implements BlobStore {
         writeLock.lock();
         try {
             if (store == null) {
-                throw new IllegalArgumentException("Input BlobStore cannot be null");
+                throw new NullPointerException("Input BlobStore cannot be null");
             }
             this.store = store;
         } finally {
@@ -396,18 +399,18 @@ public class MemoryBlobStore implements BlobStore {
     }
 
     /**
-     * Setter for the cache to use
+     * Setter for the cacheProvider to use
      * 
-     * @param cache
+     * @param cacheProvider
      */
-    public void setCache(CacheProvider cache) {
+    public void setCacheProvider(CacheProvider cache) {
         // WriteLock is used because we are changing the internal state of the MemoryBlobStore
         writeLock.lock();
         try {
             if (cache == null) {
                 throw new IllegalArgumentException("Input BlobStore cannot be null");
             }
-            this.cache = cache;
+            this.cacheProvider = cache;
         } finally {
             writeLock.unlock();
         }

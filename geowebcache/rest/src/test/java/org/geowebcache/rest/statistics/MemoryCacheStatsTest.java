@@ -19,11 +19,11 @@ import static org.junit.Assert.assertTrue;
 
 import java.io.IOException;
 
-import org.geowebcache.storage.blobstore.cache.CacheConfiguration;
-import org.geowebcache.storage.blobstore.cache.CacheProvider;
-import org.geowebcache.storage.blobstore.cache.GuavaCacheProvider;
-import org.geowebcache.storage.blobstore.cache.MemoryBlobStore;
-import org.geowebcache.storage.blobstore.cache.NullBlobStore;
+import org.geowebcache.storage.blobstore.memory.CacheConfiguration;
+import org.geowebcache.storage.blobstore.memory.CacheProvider;
+import org.geowebcache.storage.blobstore.memory.MemoryBlobStore;
+import org.geowebcache.storage.blobstore.memory.NullBlobStore;
+import org.geowebcache.storage.blobstore.memory.guava.GuavaCacheProvider;
 import org.junit.Test;
 import org.restlet.data.Method;
 import org.restlet.data.Request;
@@ -44,11 +44,11 @@ public class MemoryCacheStatsTest {
         CacheConfiguration configuration = new CacheConfiguration();
         cache.setConfiguration(configuration);
         NullBlobStore nbs = new NullBlobStore();
-        cache.clearCache();
+        cache.clear();
 
         MemoryBlobStore mbs = new MemoryBlobStore();
         mbs.setStore(nbs);
-        mbs.setCache(cache);
+        mbs.setCacheProvider(cache);
 
         // Create the request
         Request request = new Request();
@@ -82,11 +82,11 @@ public class MemoryCacheStatsTest {
         CacheConfiguration configuration = new CacheConfiguration();
         cache.setConfiguration(configuration);
         NullBlobStore nbs = new NullBlobStore();
-        cache.clearCache();
+        cache.clear();
 
         MemoryBlobStore mbs = new MemoryBlobStore();
         mbs.setStore(nbs);
-        mbs.setCache(cache);
+        mbs.setCacheProvider(cache);
 
         // Create the request
         Request request = new Request();

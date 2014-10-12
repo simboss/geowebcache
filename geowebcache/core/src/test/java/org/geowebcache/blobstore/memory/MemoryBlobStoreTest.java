@@ -27,7 +27,7 @@
  *  You should have received a copy of the GNU Lesser General Public License
  *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-package org.geowebcache.storage.blobstore.cache;
+package org.geowebcache.blobstore.memory;
 
 import static org.junit.Assert.*;
 
@@ -47,6 +47,11 @@ import org.geowebcache.storage.StorageBrokerTest;
 import org.geowebcache.storage.StorageException;
 import org.geowebcache.storage.TileObject;
 import org.geowebcache.storage.blobstore.file.FileBlobStore;
+import org.geowebcache.storage.blobstore.memory.CacheConfiguration;
+import org.geowebcache.storage.blobstore.memory.CacheProvider;
+import org.geowebcache.storage.blobstore.memory.MemoryBlobStore;
+import org.geowebcache.storage.blobstore.memory.NullBlobStore;
+import org.geowebcache.storage.blobstore.memory.guava.GuavaCacheProvider;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
@@ -77,11 +82,11 @@ public class MemoryBlobStoreTest {
     public void testNullStore() throws Exception {
         // Add a nullblobstore to the memory blobstore
         NullBlobStore nbs = new NullBlobStore();
-        cache.clearCache();
+        cache.clear();
 
         MemoryBlobStore mbs = new MemoryBlobStore();
         mbs.setStore(nbs);
-        mbs.setCache(cache);
+        mbs.setCacheProvider(cache);
 
         // Put a TileObject
         Resource bytes = new ByteArrayResource("1 2 3 4 5 6 test".getBytes());
@@ -126,11 +131,11 @@ public class MemoryBlobStoreTest {
     public void testTilePut() throws Exception {
         // Add a fileblobstore to the memory blobstore
         FileBlobStore fbs = setup();
-        cache.clearCache();
+        cache.clear();
 
         MemoryBlobStore mbs = new MemoryBlobStore();
         mbs.setStore(fbs);
-        mbs.setCache(cache);
+        mbs.setCacheProvider(cache);
 
         // Put a TileObject
         Resource bytes = new ByteArrayResource("1 2 3 4 5 6 test".getBytes());
@@ -173,11 +178,11 @@ public class MemoryBlobStoreTest {
     public void testTileDelete() throws Exception {
         // Add a fileblobstore to the memory blobstore
         FileBlobStore fbs = setup();
-        cache.clearCache();
+        cache.clear();
 
         MemoryBlobStore mbs = new MemoryBlobStore();
         mbs.setStore(fbs);
-        mbs.setCache(cache);
+        mbs.setCacheProvider(cache);
 
         Map<String, String> parameters = new HashMap<String, String>();
         parameters.put("a", "x");

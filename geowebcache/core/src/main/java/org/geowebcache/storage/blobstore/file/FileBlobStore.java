@@ -67,11 +67,11 @@ public class FileBlobStore implements BlobStore {
 
     private final String path;
 
-    private final BlobStoreListenerList listeners = new BlobStoreListenerList();
-
     private FilePathGenerator pathGenerator;
 
     private File tmp;
+
+    protected final BlobStoreListenerList listeners = new BlobStoreListenerList();
 
     private static ExecutorService deleteExecutorService;
 
@@ -539,20 +539,6 @@ public class FileBlobStore implements BlobStore {
     }
 
     /**
-     * Add an event listener
-     */
-    public void addListener(BlobStoreListener listener) {
-        listeners.addListener(listener);
-    }
-
-    /**
-     * Remove an event listener
-     */
-    public boolean removeListener(BlobStoreListener listener) {
-        return listeners.removeListener(listener);
-    }
-
-    /**
      * This method will recursively create the missing directories and call the listeners
      * directoryCreated method for each created directory.
      * 
@@ -675,6 +661,20 @@ public class FileBlobStore implements BlobStore {
         File layerPath = getLayerPath(layerName);
         File metadataFile = new File(layerPath, "metadata.properties");
         return metadataFile;
+    }
+
+    /**
+     * Add an event listener
+     */
+    public void addListener(BlobStoreListener listener) {
+        listeners.addListener(listener);
+    }
+
+    /**
+     * Remove an event listener
+     */
+    public boolean removeListener(BlobStoreListener listener) {
+        return listeners.removeListener(listener);
     }
 
 }

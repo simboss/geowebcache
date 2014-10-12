@@ -16,8 +16,8 @@
 package org.geowebcache.rest.statistics;
 
 import org.geowebcache.storage.BlobStore;
-import org.geowebcache.storage.blobstore.cache.CacheStatistics;
-import org.geowebcache.storage.blobstore.cache.MemoryBlobStore;
+import org.geowebcache.storage.blobstore.memory.CacheStatistics;
+import org.geowebcache.storage.blobstore.memory.MemoryBlobStore;
 import org.json.JSONException;
 import org.json.JSONObject;
 import org.restlet.data.MediaType;

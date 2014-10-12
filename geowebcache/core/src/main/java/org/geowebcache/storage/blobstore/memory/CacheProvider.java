@@ -12,7 +12,7 @@
  *  You should have received a copy of the GNU Lesser General Public License
  *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-package org.geowebcache.storage.blobstore.cache;
+package org.geowebcache.storage.blobstore.memory;
 
 import org.geowebcache.storage.TileObject;
 
@@ -54,17 +54,17 @@ public interface CacheProvider {
     /**
      * Removes all the cached {@link TileObject}s
      */
-    public void clearCache();
+    public void clear();
 
     /**
      * Resets the Cache status and requires to reconfigure it by calling setConfiguration(),
      */
-    public void resetCache();
+    public void reset();
 
     /**
      * Returns a {@link CacheStatistics} object containing the current cache statistics.
      */
-    public CacheStatistics getStats();
+    public CacheStatistics getStatistics();
 
     /**
      * Sets the CacheConfiguration to use

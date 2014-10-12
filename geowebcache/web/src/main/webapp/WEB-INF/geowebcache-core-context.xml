@@ -184,18 +184,18 @@
 
   <!-- New beans created -->
   
-  <bean id="cacheConfiguration" class="org.geowebcache.storage.blobstore.cache.CacheConfiguration">
+  <bean id="cacheConfiguration" class="org.geowebcache.storage.blobstore.memory.CacheConfiguration">
     <property name="hardMemoryLimit" value="64"/> <!-- 64 Mb -->
   </bean>
   
-   <bean id="guavaCacheProvider" class="org.geowebcache.storage.blobstore.cache.GuavaCacheProvider">
+   <bean id="guavaCacheProvider" class="org.geowebcache.storage.blobstore.memory.guava.GuavaCacheProvider">
     <property name="configuration" ref="cacheConfiguration"/>
   </bean>
   
-    <bean id="gwcMemoryBlobStore" class="org.geowebcache.storage.blobstore.cache.MemoryBlobStore" destroy-method="destroy">
+  <bean id="gwcMemoryBlobStore" class="org.geowebcache.storage.blobstore.memory.MemoryBlobStore" destroy-method="destroy">
     <property name="store" ref="gwcBlobStore" />
-    <property name="cache" ref="guavaCacheProvider" />
+    <property name="cacheProvider" ref="guavaCacheProvider" />
   </bean>
   
-     <bean id="gwcNullBlobStore" class="org.geowebcache.storage.blobstore.cache.NullBlobStore" destroy-method="destroy"/>
+  <bean id="gwcNullBlobStore" class="org.geowebcache.storage.blobstore.memory.NullBlobStore" destroy-method="destroy"/>
 </beans>
