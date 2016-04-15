@@ -32,10 +32,10 @@
        that are appended to every WMS request to the backed, for example: 
        "format_options=regionate_by:auto&amp;bgcolor=0x112233" 
        -->
-  <!--bean id="gwcWMSConfig" class="org.geowebcache.config.GetCapabilitiesConfiguration">
+  <bean id="gwcWMSConfig" class="org.geowebcache.config.GetCapabilitiesConfiguration">
   	<constructor-arg ref="gwcGridSetBroker">
     </constructor-arg>
-    <constructor-arg value="http://demo.mapserver.org/cgi-bin/mapserv?map=/osgeo/mapserver/msautotest/world/world.map&amp;SERVICE=WMS&amp;VERSION=1.1.1&amp;REQUEST=GetCapabilities">
+    <constructor-arg value="http://demo.geo-solutions.it/geoserver/ows?service=wms&amp;version=1.1.1&amp;request=GetCapabilities">
       <description>The URL to the WMS GetCapabilities document, notice &amp; , port is normally 8080</description>
     </constructor-arg>
     <constructor-arg value="image/png">
@@ -59,7 +59,7 @@
       <description>The configuration object with the global defaults to use for new layers</description>
     </property>
     
-  </bean-->
+  </bean>
   
   <!-- For each configuration bean above, add them below to activate -->
   <bean id="gwcTLDispatcher" class="org.geowebcache.layer.TileLayerDispatcher">
@@ -95,7 +95,7 @@
   </bean -->
   
   <bean id="gwcStorageBroker" class="org.geowebcache.storage.DefaultStorageBroker" destroy-method="destroy">
-    <constructor-arg ref="gwcBlobStore" />
+    <constructor-arg ref="gwcMemoryBlobStore" />
     <constructor-arg ref="gwcTransientCache" />
   </bean>
   
@@ -194,8 +194,8 @@
   </bean>
   
   <bean id="gwcMemoryBlobStore" class="org.geowebcache.storage.blobstore.memory.MemoryBlobStore" destroy-method="destroy">
-    <property name="store" ref="gwcBlobStore" />
-    <!--property name="cacheProvider" ref="guavaCacheProvider" /-->
+    <property name="store" ref="gwcNullBlobStore" />
+    <property name="cacheProvider" ref="guavaCacheProvider" />
     <!-- property name="cacheBeanName" value="guavaCacheProvider" /-->
   </bean>
   
